@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced CRM Data View with Process Stage</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Light gray background */
+            margin: 0;
+        }
+
+        /* Page Loader Styles */
+        #page-loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #1f2937; /* Dark background, same as header */
+            z-index: 9999; /* Ensure it's on top */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #ffffff;
+            opacity: 1;
+            transition: opacity 0.5s ease-out; /* Smooth fade-out */
+        }
+
+        .loader-animation {
+            border: 6px solid #4b5563; /* Tailwind gray-600 for the track */
+            border-top: 6px solid #6366f1; /* Tailwind indigo-500 for the spinner */
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        #page-loader p {
+            font-size: 1.25rem; /* Tailwind text-xl */
+            font-weight: 500;   /* Tailwind font-medium */
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* End Page Loader Styles */
+
+
+        /* Header Styling */
+        .app-header {
+            background-color: #1f2937; /* Dark background (Tailwind gray-800) */
+            padding: 1.5rem 2rem;
+            color: #ffffff;
+            margin-bottom: 1.5rem;
+        }
+
+        .app-header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-text-content {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .app-header .title {
+            font-size: 2.25rem; /* Tailwind text-4xl */
+            font-weight: 600;
+            line-height: 1.2;
+            color: #ffffff;
+        }
+
+        .app-header .subtitle {
+            font-size: 0.875rem; /* Tailwind text-sm */
+            color: #d1d5db;     /* Tailwind gray-300 */
+            margin-top: 0.25rem;
+            font-weight: 400;
+        }
+
+        .profile-picture {
+            width: 7.5rem;
+            height: 7.5rem;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #ffffff;
+        }
+
+        /* Main container for Scorecard and Filters */
+        .dashboard-header-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1.5rem;
+            padding: 0 1rem 1.5rem 1rem;
+            max-width: 1200px;
+            margin: 0 auto 1.5rem auto;
+        }
+
+        /* Scorecard Design */
+        .scorecard-container {
+            flex: 2;
+            min-width: 300px;
+            display: flex;
+        }
+        .scorecard {
+            background-color: white;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 12px -1px rgba(0, 0, 0, 0.07), 0 2px 8px -1px rgba(0, 0, 0, 0.04);
+            border: 1px solid #e5e7eb;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .metric-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 0.25rem;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        .metric-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0.25rem;
+        }
+         .metric-item:first-child {
+            padding-top: 0.25rem;
+        }
+        .metric-icon-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: #eef2ff;
+            flex-shrink: 0;
+            margin-right: 0.75rem;
+        }
+        .metric-icon-container svg {
+            width: 16px;
+            height: 16px;
+            color: #4338ca;
+        }
+        .metric-content {
+            display: flex;
+            align-items: baseline;
+            flex-grow: 1;
+            justify-content: space-between;
+        }
+        .metric-details-group {
+             display: flex;
+             align-items: baseline;
+             gap: 0.5rem;
+        }
+        .metric-title {
+            font-size: 0.8rem;
+            color: #4b5563;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .metric-value {
+            font-size: 1.25rem;
+            color: #1f2937;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .metric-change {
+            display: flex;
+            align-items: center;
+            font-size: 0.7rem;
+            color: #16a34a;
+            margin-left: 0.5rem;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .metric-change svg {
+            width: 12px;
+            height: 12px;
+            margin-right: 0.1rem;
+        }
+
+        /* Filter Design */
+        .filter-container {
+            flex: 1;
+            min-width: 280px;
+            display: flex;
+            flex-direction: column;
+            padding: 0.75rem 1rem;
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border: 1px solid #e0e0e0;
+        }
+        .inner-filter-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            width: 100%;
+        }
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .filter-group label {
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 0.15rem;
+        }
+        .filter-group select {
+            padding: 0.4rem 0.5rem;
+            border-radius: 0.25rem;
+            border: 1px solid #d1d5db;
+            font-size: 0.8rem;
+            background-color: white;
+            width: 100%;
+        }
+        .clear-filters-btn {
+            margin-top: 0.75rem;
+            padding: 0.4rem 0.5rem;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: white;
+            background-color: #4f46e5; /* Indigo-600 */
+            border: none;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .clear-filters-btn:hover {
+            background-color: #4338ca; /* Indigo-700 */
+        }
+
+        /* Table Design */
+        .table-container {
+            width: 100%;
+            margin-bottom: 1rem;
+            background-color: white;
+            border: 1px solid #d1d5db;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        th, td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e5e7eb;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            border-right: 1px solid #e5e7eb;
+        }
+        th:first-child, td:first-child { border-left: none; }
+        th:last-child, td:last-child { border-right: none; }
+        table tr:first-child th:first-child { border-top-left-radius: 0.75rem; }
+        table tr:first-child th:last-child { border-top-right-radius: 0.75rem; }
+        table tr:last-child td:first-child { border-bottom-left-radius: 0.75rem; }
+        table tr:last-child td:last-child { border-bottom-right-radius: 0.75rem; }
+        table tr:last-child td { border-bottom: none; }
+        th {
+            background-color: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            letter-spacing: 0.05em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-align: center;
+            border-top: none;
+        }
+        td {
+            font-size: 0.875rem;
+            white-space: normal;
+            text-align: left;
+        }
+        tr:hover { background-color: #f0f9ff; }
+        .status-completed { color: #10b981; font-weight: 500; }
+        .status-pending { color: #f59e0b; font-weight: 500; }
+        .na-value { color: #9ca3af; font-style: italic; }
+        .header-sticky { position: sticky; top: 0; z-index: 10; }
+
+        /* Responsive Adjustments */
+        @media (max-width: 900px) {
+            .dashboard-header-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .scorecard-container, .filter-container {
+                width: 100%;
+                max-width: none;
+                flex: none;
+            }
+            .filter-container .inner-filter-wrapper {
+                flex-direction: row;
+                flex-wrap: wrap;
+                align-items: flex-end;
+            }
+            .filter-group {
+                flex: 1 1 200px;
+            }
+        }
+
+        @media (max-width: 768px) {
+             .app-header {
+                padding: 1rem 1.5rem;
+            }
+            .app-header-content {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .app-header .title {
+                font-size: 1.75rem;
+            }
+            .app-header .subtitle {
+                font-size: 0.8rem;
+                margin-bottom: 0.75rem;
+            }
+            .profile-picture {
+                width: 50px;
+                height: 50px;
+                align-self: center;
+            }
+            .scorecard { gap: 0.25rem; }
+            .metric-item { padding: 0.4rem 0.1rem; }
+            .metric-value { font-size: 1.1rem; }
+            .metric-title { font-size: 0.75rem; }
+            .filter-container .inner-filter-wrapper { padding: 0; }
+            .filter-container { padding: 0.75rem; }
+            .table-container {
+                margin-top: 0.5rem;
+                margin-bottom: 0.5rem;
+                border-radius: 0;
+            }
+            table tr:first-child th:first-child,
+            table tr:first-child th:last-child,
+            table tr:last-child td:first-child,
+            table tr:last-child td:last-child { border-radius: 0; }
+            th, td {
+                padding: 0.5rem 0.75rem;
+                font-size: 0.75rem;
+            }
+            body { padding: 0; }
+        }
+        @media (max-width: 480px) {
+            .app-header { padding: 1rem; }
+            .app-header .title { font-size: 1.5rem; }
+            .app-header .subtitle { font-size: 0.75rem; }
+            .profile-picture { width: 40px; height: 40px; }
+            .metric-content { flex-wrap: wrap; }
+            .metric-details-group { margin-right: 0.5rem; }
+            .filter-container .inner-filter-wrapper {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .filter-group { flex-basis: auto; }
+        }
+    </style>
+</head>
+<body class="p-0">
+
+    <div id="page-loader">
+        <div class="loader-animation"></div>
+        <p>Loading Page, please wait...</p>
+    </div>
+
+    <header class="app-header">
+        <div class="app-header-content">
+            <div class="header-text-content">
+                <h1 class="title">Billing Overview</h1>
+                <p class="subtitle">Key Billing Information & Process Stage</p>
+            </div>
+            <img src="https://i.ibb.co/0Rbg3B4T/basant-sir-image-modified.png" alt="User Profile" class="profile-picture" onerror="this.onerror=null; this.src='https://placehold.co/60x60/E2E8F0/4A5568?text=U';">
+        </div>
+    </header>
+
+    <div class="dashboard-header-container">
+        <div id="scorecard-section" class="scorecard-container">
+            </div>
+        
+        <div class="filter-container">
+            <div class="inner-filter-wrapper">
+                <div class="filter-group">
+                    <label for="filter-category">Category</label>
+                    <select id="filter-category">
+                        <option value="All">All Categories</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filter-requirement">Requirement</label>
+                    <select id="filter-requirement">
+                        <option value="All">All Requirements</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filter-assigned">Assigned To</label>
+                    <select id="filter-assigned">
+                        <option value="All">All Assignees</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filter-stage">Current Stage</label>
+                    <select id="filter-stage">
+                        <option value="All">All Stages</option>
+                    </select>
+                </div>
+                <button id="clear-filters-button" class="clear-filters-btn">Clear Filters</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead class="header-sticky">
+                <tr>
+                    <th>SL no</th>
+                    <th>Timestamp</th>
+                    <th>UID</th>
+                    <th>Billing Name</th>
+                    <th>Category</th>
+                    <th>Requirement</th>
+                    <th>Taxable Value</th>
+                    <th>Assigned To</th>
+                    <th>Current Stage</th>
+                </tr>
+            </thead>
+            <tbody id="crm-data-body">
+                </tbody>
+        </table>
+    </div>
+
+    <script>
+        // Global variable to store the original data fetched from API or hardcoded
+        let originalJsonData = []; 
+
+        const tableBody = document.getElementById('crm-data-body');
+        const scorecardSection = document.getElementById('scorecard-section');
+        const categoryFilter = document.getElementById('filter-category');
+        const requirementFilter = document.getElementById('filter-requirement');
+        const assignedFilter = document.getElementById('filter-assigned');
+        const stageFilter = document.getElementById('filter-stage');
+        const clearFiltersButton = document.getElementById('clear-filters-button');
+        const pageLoader = document.getElementById('page-loader'); // Get loader element
+
+        const processStepsInOrder = [
+            "Confirmation from Customer end for bill preparation ", 
+            "Bill Preparation ", "Invoice Generation ", "Bill Receiving Followup",
+            "Payment Followup", "Payment Receive", "Due Followup", 
+            "Payment Arrangement", "Payment Completion"
+        ];
+
+        // Function to fetch data from API
+        async function fetchData() {
+            // The page loader is visible by default (CSS). No need to explicitly show it here.
+            const apiUrl = "https://script.googleusercontent.com/a/macros/buildwealthrealtors.com/echo?user_content_key=AehSKLhv-3gb9z3LbocGM2KcenQSdmsFfEf8bd98yE2swhd5lOeIc21MibiEn7bJHf9CvWXLf-NKWUTlo8epsny9q2evutzrLWiRnDaTsQLyfyLkuV5kFQ4XOd8uQU09cGu2PGB0YDDDd7V7kRuC5E1wIyjsHa8g80Spmk17QczeClahd5FQ_2p7K1MykQB4AOT0Su1PTHv9d7ttYDAqnkUpw5HYq5b6TmOH0LZwKSMWCU94XlHCwbG3qMSDVq53Zltu6rTzyDWb3ejRGCt_-OabHn499aRZxgmVaGmFt2gEaCMuNBVanW76CoXcEW7sAsvyUkbaBwpl&lib=M4N3PBsGJ5cler4SOuOKm_Qa_c_o8YQ-H";
+            
+            const useHardcodedData = false; 
+
+            const hardcodedData = [
+              {
+                "Timestamp": "2024-05-04T05:17:49.488Z", "Billing Name ": "Test Message (Fallback)", "Category": "Commercial", "Requirement": "Rent", "Taxable Value": 5000, "Assigned To": "Shyam S", "UID": "BI1",
+                "Confirmation from Customer end for bill preparation ": "Completed", "Bill Preparation ": "Completed", "Invoice Generation ": "Completed", "Bill Receiving Followup": "Completed", "Payment Followup": "Completed", "Payment Receive": "Completed", "Due Followup": "Completed", "Payment Arrangement": "Completed", "Payment Completion": "Completed"
+              },
+              {
+                "Timestamp": "2025-05-13T07:01:08.275Z", "Billing Name ": "test (Fallback)", "Category": "Residential", "Requirement": "Buy", "Taxable Value": 45, "Assigned To": "Sayantun Paul", "UID": "BI8",
+                "Confirmation from Customer end for bill preparation ": "Pending", "Bill Preparation ": "Pending", "Invoice Generation ": "Pending", "Bill Receiving Followup": "Pending", "Payment Followup": "Pending", "Payment Receive": "Pending", "Due Followup": "Pending", "Payment Arrangement": "Pending", "Payment Completion": "Pending"
+              }
+            ];
+
+            if (useHardcodedData) {
+                console.log("Using hardcoded fallback data.");
+                originalJsonData = hardcodedData;
+                initializePage();
+                return;
+            }
+            
+            try {
+                // These messages will be hidden by the full-page loader initially.
+                // They act as fallbacks if the full-page loader is hidden before these sections are populated.
+                tableBody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding: 2rem;">Loading table data...</td></tr>`;
+                scorecardSection.innerHTML = `<div class="scorecard" style="display:flex; justify-content:center; align-items:center; padding:2rem; min-height: 150px;">Loading summary data...</div>`;
+
+                const response = await fetch(apiUrl);
+                if (!response.ok) {
+                    console.warn(`HTTP error! status: ${response.status}. Falling back to hardcoded data.`);
+                    originalJsonData = hardcodedData; 
+                } else {
+                    const rawData = await response.json();
+                    if (Array.isArray(rawData) && rawData.length > 0) {
+                        if (Array.isArray(rawData[0])) { 
+                            originalJsonData = rawData.slice(1).map(row => {
+                                let obj = {};
+                                rawData[0].forEach((key, index) => {
+                                    obj[key] = row[index];
+                                });
+                                return obj;
+                            });
+                        } else if (typeof rawData[0] === 'object' && rawData[0] !== null) {
+                             originalJsonData = rawData;
+                        } else {
+                            console.error("Fetched data is in an unexpected format. Falling back to hardcoded data.", rawData);
+                            originalJsonData = hardcodedData;
+                        }
+                    } else {
+                         originalJsonData = rawData; 
+                    }
+
+                    if (!Array.isArray(originalJsonData) || (originalJsonData.length > 0 && typeof originalJsonData[0] !== 'object')) {
+                        console.error("Processed data is not an array of objects. Falling back to hardcoded data.", originalJsonData);
+                        originalJsonData = hardcodedData;
+                    }
+                }
+                
+                if (!Array.isArray(originalJsonData)) { 
+                    console.error("Fetched data is not an array after processing. Falling back to hardcoded data.", originalJsonData);
+                    originalJsonData = hardcodedData; 
+                }
+
+                initializePage();
+            } catch (error) {
+                console.error("Could not fetch data:", error);
+                tableBody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:red; padding: 2rem;">Error loading live data. Displaying sample data.</td></tr>`;
+                originalJsonData = hardcodedData; 
+                initializePage(); // Still initialize with fallback data and hide loader
+            }
+        }
+
+
+        function formatTimestamp(isoString) {
+            if (!isoString) return 'N/A';
+            try {
+                const date = new Date(isoString);
+                if (isNaN(date.getTime())) {
+                    return 'Invalid Date';
+                }
+                return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            } catch (e) { 
+                console.error("Error formatting timestamp:", isoString, e);
+                return 'Invalid Date'; 
+            }
+        }
+        
+        function getItemStage(item) {
+            for (const stepKey of processStepsInOrder) {
+                const trimmedStepKey = stepKey.trim();
+                // Check both original and trimmed key for robustness, prefer trimmed
+                if (item.hasOwnProperty(trimmedStepKey)) {
+                    if (String(item[trimmedStepKey]).trim() !== "Completed") return trimmedStepKey;
+                } else if (item.hasOwnProperty(stepKey)) { // Fallback to original key
+                     if (String(item[stepKey]).trim() !== "Completed") return trimmedStepKey; // Return the defined (trimmed) stage name
+                } else {
+                    // If the property for a step doesn't exist, consider it pending at that step
+                    return trimmedStepKey;
+                }
+            }
+            return "All Stages Completed";
+        }
+
+        function populateSingleScorecard(dataToScore) { 
+            scorecardSection.innerHTML = ''; 
+            const singleCard = document.createElement('div'); 
+            singleCard.className = 'scorecard';
+
+            let totalRecords = dataToScore.length;
+            let itemsPendingCount = 0; 
+            let itemsCompleted = 0;
+            let totalTaxableValue = 0;
+            let pendingBillAmount = 0; 
+
+            dataToScore.forEach(item => {
+                const stage = getItemStage(item);
+                const taxableValue = parseFloat(String(item["Taxable Value"]).replace(/[^0-9.-]+/g,"")) || 0;
+
+                if (stage === "All Stages Completed") {
+                    itemsCompleted++;
+                } else {
+                    itemsPendingCount++;
+                    pendingBillAmount += taxableValue; 
+                }
+                totalTaxableValue += taxableValue;
+            });
+
+            const metrics = [
+                { title: 'Total Records', value: totalRecords, icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>`, change: "" },
+                { title: 'Items Pending', value: itemsPendingCount, icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`, change: "" },
+                { title: 'Items Completed', value: itemsCompleted, icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`, change: "" },
+                { title: 'Total Taxable Value', value: totalTaxableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0 }), icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>`, change: "" },
+                { title: 'Pending Bill Amount', value: pendingBillAmount.toLocaleString('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0 }), icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><circle cx="12" cy="15" r="3"></circle><line x1="12" y1="12" x2="12" y2="12.01"></line><path d="M12 12v-1m0 6v-1"></path></svg>`, change: ""}
+            ];
+
+            metrics.forEach(metric => {
+                const itemDiv = document.createElement('div'); itemDiv.className = 'metric-item';
+                const iconContainerDiv = document.createElement('div'); iconContainerDiv.className = 'metric-icon-container'; iconContainerDiv.innerHTML = metric.icon; 
+                const contentDiv = document.createElement('div'); contentDiv.className = 'metric-content';
+                
+                const detailsGroupDiv = document.createElement('div'); detailsGroupDiv.className = 'metric-details-group';
+                const titleEl = document.createElement('div'); titleEl.className = 'metric-title'; titleEl.textContent = metric.title;
+                const valueEl = document.createElement('div'); valueEl.className = 'metric-value'; valueEl.textContent = metric.value;
+                detailsGroupDiv.appendChild(titleEl); detailsGroupDiv.appendChild(valueEl);
+
+                contentDiv.appendChild(detailsGroupDiv); 
+                
+                if (metric.change) {
+                    const changeDiv = document.createElement('div'); changeDiv.className = 'metric-change';
+                    changeDiv.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg><span>${metric.change}</span>`;
+                    contentDiv.appendChild(changeDiv);
+                }
+
+                itemDiv.appendChild(iconContainerDiv); 
+                itemDiv.appendChild(contentDiv); 
+                singleCard.appendChild(itemDiv); 
+            });
+            scorecardSection.appendChild(singleCard); 
+        }
+
+        function createCell(text, headerName = null, stageValue = null) {
+            const cell = document.createElement('td');
+            if (headerName === "Current Stage") {
+                cell.textContent = stageValue || 'N/A'; 
+                if (stageValue === "All Stages Completed") cell.className = 'status-completed'; 
+                else cell.className = 'status-pending'; 
+            } else {
+                const cellText = (text === null || text === undefined || String(text).trim() === "") ? 'N/A' : String(text);
+                cell.textContent = cellText;
+                if (cellText === 'N/A') {
+                    cell.className = 'na-value';
+                }
+            }
+            return cell;
+        }
+        
+        function populateTable(dataToDisplay) { 
+            tableBody.innerHTML = ''; 
+            if (!dataToDisplay || dataToDisplay.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding: 2rem;">No data matches your filters.</td></tr>`;
+                return;
+            }
+            dataToDisplay.forEach((item, index) => { 
+                const row = document.createElement('tr');
+                const determinedStage = getItemStage(item);
+
+                const keysAndFormatting = {
+                    "SL no": () => (index + 1).toString(),
+                    "Timestamp": (i) => formatTimestamp(i["Timestamp"]),
+                    "UID": (i) => i["UID"],
+                    "Billing Name": (i) => i["Billing Name "] || i["Billing Name"],
+                    "Category": (i) => i["Category"],
+                    "Requirement": (i) => i["Requirement"],
+                    "Taxable Value": (i) => (parseFloat(String(i["Taxable Value"]).replace(/[^0-9.-]+/g,"")) || 0).toLocaleString('en-IN'),
+                    "Assigned To": (i) => i["Assigned To"],
+                    "Current Stage": () => determinedStage 
+                };
+                const headersInOrder = ["SL no", "Timestamp", "UID", "Billing Name", "Category", "Requirement", "Taxable Value", "Assigned To", "Current Stage"]; 
+
+                headersInOrder.forEach(headerName => {
+                    let cellValue;
+                    if (keysAndFormatting[headerName]) {
+                        cellValue = keysAndFormatting[headerName](item);
+                    } else {
+                        cellValue = item[headerName] !== undefined ? item[headerName] : 'N/A';
+                    }
+                    const cellNode = createCell(cellValue, headerName, headerName === "Current Stage" ? determinedStage : null);
+                    row.appendChild(cellNode);
+                });
+                tableBody.appendChild(row);
+            });
+        }
+
+        function populateFilters() {
+            [categoryFilter, requirementFilter, assignedFilter, stageFilter].forEach(select => {
+                while (select.options.length > 1) {
+                    select.remove(1);
+                }
+            });
+
+            const categories = new Set();
+            const requirements = new Set();
+            const assignees = new Set();
+            const stages = new Set(processStepsInOrder.map(s => s.trim()));
+            stages.add("All Stages Completed"); 
+
+            originalJsonData.forEach(item => { 
+                if (item.Category && String(item.Category).trim()) categories.add(String(item.Category).trim());
+                if (item.Requirement && String(item.Requirement).trim()) requirements.add(String(item.Requirement).trim());
+                const assignedToKey = Object.keys(item).find(k => k.trim().toLowerCase() === "assigned to");
+                if (assignedToKey && item[assignedToKey] && String(item[assignedToKey]).trim()) assignees.add(String(item[assignedToKey]).trim());
+            });
+
+            categories.forEach(cat => categoryFilter.add(new Option(cat, cat)));
+            requirements.forEach(req => requirementFilter.add(new Option(req, req)));
+            assignees.forEach(asg => assignedFilter.add(new Option(asg, asg)));
+            stages.forEach(stg => stageFilter.add(new Option(stg, stg)));
+        }
+        
+        function equalizeHeaderHeights() {
+            requestAnimationFrame(() => {
+                const scorecardEl = scorecardSection.querySelector('.scorecard');
+                const filterEl = document.querySelector('.filter-container');
+                
+                if (scorecardEl && filterEl) {
+                    scorecardEl.style.minHeight = 'auto'; 
+                    filterEl.style.minHeight = 'auto';   
+
+                    const scorecardHeight = scorecardEl.offsetHeight;
+                    const filterHeight = filterEl.offsetHeight;
+                    const maxHeight = Math.max(scorecardHeight, filterHeight);
+
+                    const headerContainer = document.querySelector('.dashboard-header-container');
+                    const computedStyle = window.getComputedStyle(headerContainer);
+
+                    if (computedStyle.flexDirection !== 'column') { 
+                         scorecardEl.style.minHeight = `${maxHeight}px`;
+                         filterEl.style.minHeight = `${maxHeight}px`;
+                    }
+                }
+            });
+        }
+
+        function applyFiltersAndRender() {
+            const selectedCategory = categoryFilter.value;
+            const selectedRequirement = requirementFilter.value;
+            const selectedAssignee = assignedFilter.value;
+            const selectedStage = stageFilter.value;
+
+            const filteredData = originalJsonData.filter(item => { 
+                const itemStage = getItemStage(item); 
+                const itemCategory = item.Category ? String(item.Category).trim() : "";
+                const itemRequirement = item.Requirement ? String(item.Requirement).trim() : "";
+
+                const assignedToKey = Object.keys(item).find(k => k.trim().toLowerCase() === "assigned to");
+                const itemAssignee = assignedToKey && item[assignedToKey] ? String(item[assignedToKey]).trim() : "";
+
+                return (selectedCategory === "All" || itemCategory === selectedCategory) &&
+                       (selectedRequirement === "All" || itemRequirement === selectedRequirement) &&
+                       (selectedAssignee === "All" || itemAssignee === selectedAssignee) &&
+                       (selectedStage === "All" || itemStage === selectedStage);
+            });
+
+            populateTable(filteredData);
+            populateSingleScorecard(filteredData); 
+            equalizeHeaderHeights(); 
+        }
+        
+        function initializePage() {
+            populateFilters(); 
+            applyFiltersAndRender(); 
+
+            [categoryFilter, requirementFilter, assignedFilter, stageFilter].forEach(filterEl => {
+                filterEl.addEventListener('change', applyFiltersAndRender);
+            });
+            clearFiltersButton.addEventListener('click', () => {
+                categoryFilter.value = "All";
+                requirementFilter.value = "All";
+                assignedFilter.value = "All";
+                stageFilter.value = "All";
+                applyFiltersAndRender();
+            });
+            window.addEventListener('resize', equalizeHeaderHeights); 
+
+            // Hide the full-page loader after everything is initialized
+            if (pageLoader) {
+                pageLoader.style.opacity = '0'; // Start fade out
+                setTimeout(() => { // Wait for fade out animation to complete
+                    pageLoader.style.display = 'none';
+                }, 500); // This duration should match the CSS transition duration
+            }
+        }
+
+        fetchData();
+
+    </script>
+
+</body>
+</html>
